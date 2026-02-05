@@ -46,6 +46,7 @@ export const addExpense = createAsyncThunk(
           credentials: "include",
           headers: {
             "x-csrf-token": csrf,
+            "x-username": getState().auth.user?.name,
             // ❌ DO NOT set Content-Type for FormData
           },
           body: formData, // ✅ use FormData directly
@@ -194,6 +195,7 @@ export const fetchExpensesForUser = createAsyncThunk(
       return {
         data: data?.data || [],
         allExpenses: data?.allExpenses || [],
+        expenses: data?.expenses || [],
         stats: data?.stats || {
           totalSpent: 0,
           totalReimbursed: 0,

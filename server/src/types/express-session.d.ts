@@ -10,6 +10,7 @@ declare module 'express-session' {
     user?: {
       id?: string;
       role?: UserRole
+      name?: string
     };
     twoFactorSecret?: string;
     twoFactorPending?: boolean;

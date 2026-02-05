@@ -74,6 +74,7 @@ const AdminDashboard = () => {
     loading: expenseLoading,
     meta: expenseMeta,
     page: expensePage,
+    adminExpenses,
     setPage: setExpensePage,
     handleOpen: handleExpenseOpen,
     search: expenseSearch,
@@ -87,6 +88,8 @@ const AdminDashboard = () => {
     limit: expenseLimit,
     setSelectedMonth: setExpenseSelectedMonth,
   } = useExpenses();
+
+  console.log("admin expenses: ", adminExpenses);
 
   useEffect(() => {
     dispatch(fetchBudgets({ location: currentLoc, page: 1, limit: 10000 }));

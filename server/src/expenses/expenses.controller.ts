@@ -17,12 +17,14 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
 
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto, UpdateExpenseDto } from './dtos/create-expense.dto';
 import { SearchExpensesDto } from './dtos/search-expense.dto';
 import { CsrfGuard } from 'src/guards/csrf/csrf.guard';
-
+import * as fs from 'fs';
 @Controller('expenses')
 export class ExpensesController {
   private logger = new Logger('ExpensesController');
@@ -34,7 +36,38 @@ export class ExpensesController {
      ===================================================== */
   @Post('create')
   @UseGuards(CsrfGuard)
-  @UseInterceptors(FileInterceptor('proof'))
+  @UseInterceptors(
+    FileInterceptor('proof', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const rawUsername =
+            req.headers['x-username']?.toString() || 'unknown';
+
+          // sanitize username (VERY important)
+          const username = rawUsername
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_-]/g, '');
+
+          const uploadPath = join(
+            process.cwd(),
+            'uploads',
+            username,
+            'expenses',
+          );
+
+          fs.mkdirSync(uploadPath, { recursive: true });
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const uniqueName =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `${uniqueName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+
   @UsePipes(
     new ValidationPipe({
       whitelist: true,

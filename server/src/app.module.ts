@@ -8,7 +8,8 @@ import { DepartmentModule } from './department/department.module';
 import { ReimbursementModule } from './reimbursement/reimbursement.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TypeOrmModule } from "@nestjs/typeorm"
-import path from 'path';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import path, { join } from 'path';
 
 
 
@@ -18,7 +19,14 @@ import path from 'path';
       isGlobal: true,
       envFilePath: ".env"
     }),
-
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+      serveStaticOptions: {
+        index: false,
+        maxAge: '1d',
+      },
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

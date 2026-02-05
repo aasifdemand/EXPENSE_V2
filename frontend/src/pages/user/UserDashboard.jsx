@@ -50,7 +50,6 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import { fetchReimbursementsForUser } from "../../store/reimbursementSlice";
 import { fetchExpensesForUser } from "../../store/expenseSlice";
 import { fetchUserBudgets } from "../../store/budgetSlice";
-import ListItemButton from "@mui/material/ListItemButton";
 import {
   AreaChart,
   Area,
@@ -1398,6 +1397,8 @@ const Dashboard = () => {
     meta: expenseMeta = { total: 0, limit: expenseLimit },
   } = useSelector((state) => state?.expense ?? {});
 
+  console.log("user expesnes: ", allExpenses);
+
   useEffect(() => {
     if (!user?.id) return;
     dispatch(fetchExpensesForUser({ userId: user.id, page: 1, limit: 20 }));
@@ -1442,8 +1443,8 @@ const Dashboard = () => {
 
     const monthlyExpenses =
       allExpenses?.filter((expense) => {
-        if (!expense?.createdAt) return false;
-        const expenseDate = parseDate(expense.createdAt);
+        if (!expense?.date) return false;
+        const expenseDate = parseDate(expense.date);
         if (!expenseDate) return false;
         const expenseMonth = expenseDate.getMonth();
         const expenseYear = expenseDate.getFullYear();
@@ -1451,14 +1452,17 @@ const Dashboard = () => {
       }) || [];
 
     monthlyExpenses.forEach((expense) => {
-      const expenseDate = parseDate(expense.createdAt);
+      const expenseDate = parseDate(expense.date); // ✅ correct
       if (!expenseDate) return;
+
       const day = expenseDate.getDate();
       const dayIndex = day - 1;
+
       if (dailyData[dayIndex]) {
         const fromAllocation = Number(expense.fromAllocation || 0);
         const fromReimbursement = Number(expense.fromReimbursement || 0);
         const totalAmount = Number(expense.amount || 0);
+
         dailyData[dayIndex].fromAllocation += fromAllocation;
         dailyData[dayIndex].fromReimbursement += fromReimbursement;
         dailyData[dayIndex].totalAmount += totalAmount;

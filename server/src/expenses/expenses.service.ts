@@ -17,11 +17,8 @@ import { Budget } from 'src/entities/budget.entity';
 import { Department } from 'src/entities/department.entity';
 import { SubDepartment } from 'src/entities/sub-department.entity';
 import { Reimbursement } from 'src/entities/reimbursement.entity';
-
 import { CreateExpenseDto, UpdateExpenseDto } from './dtos/create-expense.dto';
 import { SearchExpensesDto } from './dtos/search-expense.dto';
-
-import { ImagekitService } from 'src/services/media.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { MailService } from 'src/services/mail.service';
 import createExpenseEmailTemplate from './templates/create-expense.template';
@@ -52,7 +49,6 @@ export class ExpensesService {
 
     private readonly dataSource: DataSource,
 
-    private readonly mediaService: ImagekitService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly notificationService: NotificationsService,
     private readonly mailService: MailService,
@@ -101,14 +97,24 @@ export class ExpensesService {
     const expenseDate = this.dateUtil.parseExpenseDate(dto.date);
 
     let proof: string | undefined;
+
     if (file) {
-      const uploaded = await this.mediaService.uploadFile(
-        file.buffer,
-        file.originalname,
-        '/admin-expenses',
-      );
-      proof = uploaded.url;
+      const baseUrl = process.env.APP_URL!;
+
+      // normalize slashes
+      const normalizedPath = file.path.replace(/\\/g, '/');
+
+      // extract public path starting from /uploads
+      const uploadsIndex = normalizedPath.indexOf('/uploads/');
+      const publicPath =
+        uploadsIndex !== -1
+          ? normalizedPath.substring(uploadsIndex + 1) // remove leading slash
+          : normalizedPath;
+
+      proof = `${baseUrl}/${publicPath}`;
     }
+
+
 
     const department = await this.departmentRepo.findOneBy({
       id: dto.department,
@@ -179,14 +185,25 @@ export class ExpensesService {
          FILE UPLOAD
          ===================== */
       let proof: string | undefined;
+
       if (file) {
-        const uploaded = await this.mediaService.uploadFile(
-          file.buffer,
-          file.originalname,
-          '/expenses',
-        );
-        proof = uploaded.url;
+        const baseUrl = process.env.APP_URL!;
+
+        // normalize slashes
+        const normalizedPath = file.path.replace(/\\/g, '/');
+
+        // extract public path starting from /uploads
+        const uploadsIndex = normalizedPath.indexOf('/uploads/');
+        const publicPath =
+          uploadsIndex !== -1
+            ? normalizedPath.substring(uploadsIndex + 1) // remove leading slash
+            : normalizedPath;
+
+        proof = `${baseUrl}/${publicPath}`;
       }
+
+
+
 
       /* =====================
          FETCH BUDGETS (FIFO)

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { ExpensesController } from './expenses.controller';
-import { ImagekitService } from 'src/services/media.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
@@ -43,7 +42,7 @@ import { AdminExpense } from 'src/entities/admin-expense.entity';
 
   ],
   controllers: [ExpensesController],
-  providers: [ExpensesService, ImagekitService, NotificationsService, NotificationsGateway, MailService, DateUtil],
+  providers: [ExpensesService, NotificationsService, NotificationsGateway, MailService, DateUtil],
   exports: [NotificationsService, NotificationsGateway, MailService],
 })
 export class ExpensesModule { }

@@ -132,10 +132,10 @@ export class ReimbursementService {
         reimbursement.isReimbursed = isReimbursed;
         reimbursement.reimbursedAt = isReimbursed ? new Date() : undefined;
 
-        if (isReimbursed && reimbursement.expense) {
-            reimbursement.expense.fromReimbursement = 0;
-            await this.expenseRepo.save(reimbursement.expense);
-        }
+        // if (isReimbursed && reimbursement.expense) {
+        //     reimbursement.expense.fromReimbursement = 0;
+        //     await this.expenseRepo.save(reimbursement.expense);
+        // }
 
         await this.reimbursementRepo.save(reimbursement);
 

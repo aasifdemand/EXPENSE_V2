@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 const Expenses = () => {
   const navigate = useNavigate();
 
-  const { adminMeta, loading, page, setPage, limit, setLimit, expenses } =
+  const { adminMeta, loading, page, setPage, limit, setLimit, allExpenses } =
     useExpenses({ mode: "admin" });
 
   return (
@@ -28,7 +28,7 @@ const Expenses = () => {
       </Box>
 
       <ExpenseTable
-        expenses={expenses}
+        expenses={allExpenses}
         loading={loading}
         meta={adminMeta}
         page={page}

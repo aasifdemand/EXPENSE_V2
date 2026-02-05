@@ -1,0 +1,229 @@
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  allocateBudget,
+  fetchBudgets,
+  fetchUserBudgets,
+  searchBudgets,
+  updateBudget,
+} from "../store/budgetSlice";
+import { getMonthByNumber } from "../utils/get-month";
+import { fetchExpenses } from "../store/expenseSlice";
+import { useLocation } from "../contexts/LocationContext"; // Import location context
+
+export const useBudgeting = () => {
+  const dispatch = useDispatch();
+  const { budgets, loading, meta, statsBudgets } = useSelector(
+    (state) => state?.budget,
+  );
+  const { users } = useSelector((state) => state?.auth);
+  const { user } = useSelector((state) => state?.auth);
+
+  // Get location from context
+  const { currentLoc } = useLocation();
+
+  const year = new Date().getFullYear();
+  const currentMonth = new Date().toLocaleString("default", { month: "long" });
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const [formData, setFormData] = useState({
+    userId: "",
+    amount: 0,
+    month: currentMonth,
+    year,
+    company: "",
+  });
+
+  const [open, setOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterYear, setFilterYear] = useState("");
+
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  // debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  useEffect(() => {
+    const isFiltering =
+      !!debouncedSearch?.trim() || !!filterMonth || !!filterYear;
+
+    if (isFiltering) {
+      dispatch(
+        searchBudgets({
+          userName: debouncedSearch || undefined,
+          month: filterMonth || undefined,
+          year: filterYear || undefined,
+          page,
+          limit,
+          location: currentLoc,
+        }),
+      );
+    } else {
+      if (user?.role === "superadmin") {
+        dispatch(
+          fetchBudgets({
+            page,
+            limit,
+            location: currentLoc,
+          }),
+        );
+      } else if (user?.id) {
+        dispatch(
+          fetchUserBudgets({
+            userId: user.id,
+            page,
+            limit,
+          }),
+        );
+      }
+    }
+  }, [
+    dispatch,
+    page,
+    limit,
+    debouncedSearch,
+    filterMonth,
+    filterYear,
+    currentLoc,
+
+    user?.id,
+    user?.role,
+  ]);
+
+  // Reset to first page when location changes
+  useEffect(() => {
+    if (user?.role === "superadmin" && currentLoc) {
+      setPage(1);
+    }
+  }, [currentLoc, user?.role]);
+
+  const handleOpen = (row) => {
+    console.log("row: ", row);
+    setSelectedBudget(row);
+    setFormData({
+      userId: row?.user?.id,
+      amount: row.allocatedAmount,
+      month: row.month,
+      year: row.year,
+      company: row?.company,
+    });
+    setOpen(true);
+  };
+
+  const handleClose = () => setOpen(false);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleAdd = async () => {
+    // 🔥 FIX: always resolve a valid userId
+    const resolvedUserId = formData.userId || user?.id; // fallback to current session user
+
+    if (!resolvedUserId) {
+      console.error("No userId available for budget allocation");
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      userId: resolvedUserId,
+    };
+
+    console.log("allocateBudget payload:", payload);
+
+    const resultAction = await dispatch(allocateBudget(payload));
+
+    if (allocateBudget.fulfilled.match(resultAction)) {
+      if (user?.role === "superadmin") {
+        await dispatch(
+          fetchBudgets({ page: 1, limit: 10, location: currentLoc }),
+        );
+      } else {
+        await dispatch(
+          fetchUserBudgets({ userId: user.id, page: 1, limit: 10 }),
+        );
+      }
+
+      await dispatch(
+        fetchExpenses({ page: 1, limit: 20, location: currentLoc }),
+      );
+
+      setFormData({
+        userId: "",
+        amount: "",
+        month: currentMonth,
+        year,
+        company: "",
+      });
+    } else {
+      console.error("Allocation failed:", resultAction);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedBudget) return;
+
+    const res = await dispatch(
+      updateBudget({ id: selectedBudget.id, updates: formData }),
+    );
+
+    if (updateBudget.fulfilled.match(res)) {
+      // Refetch with current location
+      if (user?.role === "superadmin") {
+        await dispatch(
+          fetchBudgets({ page: 1, limit: 10, location: currentLoc }),
+        );
+      } else {
+        await dispatch(
+          fetchUserBudgets({ userId: user?.id, page: 1, limit: 10 }),
+        );
+      }
+      await dispatch(
+        fetchExpenses({ page: 1, limit: 20, location: currentLoc }),
+      );
+    }
+
+    setOpen(false);
+  };
+
+  return {
+    statsBudgets,
+    budgets,
+    loading,
+    meta,
+    users,
+    formData,
+    setFormData,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    open,
+    handleOpen,
+    handleClose,
+    handleChange,
+    handleAdd,
+    handleSubmit,
+    search,
+    setSearch,
+    filterMonth,
+    setFilterMonth,
+    filterYear,
+    setFilterYear,
+    getMonthByNumber,
+    selectedMonth,
+    setSelectedMonth,
+  };
+};

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { 
   ChevronRight, 
-  ChevronLeft, 
   Check, 
   Info, 
   Tag, 
@@ -12,7 +10,7 @@ import {
   Building2
 } from "lucide-react";
 import { useAddExpenseMutation, useUpdateExpenseMutation } from "../../store/expenseApi";
-import { fetchDepartments, fetchSubDepartments } from "../../store/departmentSlice";
+import { useGetDepartmentsQuery, useGetSubDepartmentsQuery } from "../../store/departmentApi";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -36,11 +34,24 @@ const Step1 = ({ formData, handleChange, errors }) => (
         />
         {errors.description && <p className="text-[10px] text-red-500 ml-1 font-medium">{errors.description}</p>}
       </div>
+
+      <div className="space-y-2.5">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-text-muted ml-0.5">Vendor / Merchant Name</label>
+        <Input 
+          icon={Building2} 
+          name="vendor" 
+          placeholder="e.g. Amazon, Starbucks, Uber" 
+          value={formData.vendor} 
+          onChange={handleChange}
+          error={errors.vendor}
+        />
+        {errors.vendor && <p className="text-[10px] text-red-500 ml-1 font-medium">{errors.vendor}</p>}
+      </div>
+
       <div className="space-y-2.5">
         <label className="text-[11px] font-semibold uppercase tracking-wider text-text-muted ml-0.5">Expense Date</label>
         <Input 
           type="date" 
-          icon={Calendar} 
           name="date" 
           value={formData.date} 
           onChange={handleChange}
@@ -137,6 +148,10 @@ const Step4 = ({ formData, departments, expenseError }) => (
             <span className="text-xs font-semibold text-text-secondary">Description</span>
             <span className="text-sm font-medium text-text-primary underline underline-offset-4 decoration-primary-500/20">{formData.description}</span>
          </div>
+         <div className="flex justify-between items-center px-2 border-t border-slate-50 pt-2">
+            <span className="text-xs font-semibold text-text-secondary">Vendor</span>
+            <span className="text-sm font-bold text-text-primary">{formData.vendor}</span>
+         </div>
          {formData.proof && (
            <div className="flex justify-between items-center px-2 border-t border-slate-50 pt-2">
               <span className="text-xs font-semibold text-text-secondary">Proof</span>
@@ -160,11 +175,11 @@ const Step4 = ({ formData, departments, expenseError }) => (
 );
 
 const MultiStepExpenseForm = ({ onClose, isAdmin = false, initialData = null }) => {
-  const dispatch = useDispatch();
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     description: "",
+    vendor: "",
     date: new Date().toISOString().split('T')[0],
     departmentId: "",
     subDepartmentId: "",
@@ -173,7 +188,11 @@ const MultiStepExpenseForm = ({ onClose, isAdmin = false, initialData = null }) 
     proof: null,
   });
 
-  const { departments, subDepartments } = useSelector((state) => state.department);
+  // RTK Query for departments and sub-departments
+  const { data: departments } = useGetDepartmentsQuery();
+  const { data: subDepartments } = useGetSubDepartmentsQuery(formData.departmentId, {
+    skip: !formData.departmentId
+  });
   
   // RTK Query Mutations
   const [addExpenseTrigger, { isLoading: isAdding, error: addError }] = useAddExpenseMutation();
@@ -183,10 +202,10 @@ const MultiStepExpenseForm = ({ onClose, isAdmin = false, initialData = null }) 
   const expenseError = (addError?.data?.message || updateError?.data?.message) || null;
 
   useEffect(() => {
-    dispatch(fetchDepartments());
     if (initialData) {
       setFormData({
         description: initialData.description || "",
+        vendor: initialData.vendor || "",
         date: initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         departmentId: initialData.department?.id || initialData.department || "",
         subDepartmentId: initialData.subDepartment?.id || initialData.subDepartment || "",
@@ -195,13 +214,7 @@ const MultiStepExpenseForm = ({ onClose, isAdmin = false, initialData = null }) 
         proof: null,
       });
     }
-  }, [dispatch, initialData]);
-
-  useEffect(() => {
-    if (formData.departmentId) {
-      dispatch(fetchSubDepartments(formData.departmentId));
-    }
-  }, [formData.departmentId, dispatch]);
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
@@ -238,6 +251,7 @@ const MultiStepExpenseForm = ({ onClose, isAdmin = false, initialData = null }) 
       if (initialData?.id) {
         const updates = {
           description: formData.description,
+          vendor: formData.vendor,
           amount: Number(formData.amount),
           date: formData.date,
           department: formData.departmentId,
@@ -248,6 +262,7 @@ const MultiStepExpenseForm = ({ onClose, isAdmin = false, initialData = null }) 
       } else {
         const data = new FormData();
         data.append("description", formData.description);
+        data.append("vendor", formData.vendor);
         data.append("amount", formData.amount);
         data.append("date", formData.date);
         data.append("department", formData.departmentId);

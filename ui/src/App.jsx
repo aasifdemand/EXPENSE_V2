@@ -15,6 +15,7 @@ const UserDashboard = lazy(() => import("./pages/user/UserDashboard"));
 const UserBudgeting = lazy(() => import("./pages/user/budgeting/Budgeting"));
 const UserExpenses = lazy(() => import("./pages/user/expenses/Expenses"));
 const UserSettings = lazy(() => import("./pages/user/settings/Settings"));
+const UserReport = lazy(() => import("./pages/user/report/Report"));
 const UserReimbursements = lazy(() => import("./pages/user/reimbursements/Reimbursements"));
 
 // Admin Pages
@@ -75,12 +76,16 @@ const App = () => {
             <Route
               path="/login"
               element={
-                isAuthenticated && !isTwoFactorPending ? (
-                  role === "superadmin" ? (
+                isAuthenticated ? (
+                  isTwoFactorPending ? (
+                    <Navigate to="/qr" />
+                  ) : role === "superadmin" ? (
                     <Navigate to="/admin/dashboard" />
                   ) : (
                     <Navigate to="/user/dashboard" />
                   )
+                ) : isTwoFactorPending ? (
+                  <Navigate to="/qr" />
                 ) : (
                   <Login />
                 )
@@ -104,6 +109,7 @@ const App = () => {
             <Route path="budgeting" element={<UserBudgeting />} />
             <Route path="expenses" element={<UserExpenses />} />
             <Route path="reimbursements" element={<UserReimbursements />} />
+            <Route path="report" element={<UserReport />} />
             <Route path="settings" element={<UserSettings />} />
           </Route>
 
@@ -131,7 +137,9 @@ const App = () => {
           <Route
             path="*"
             element={
-              role === "superadmin" && isAuthenticated ? (
+              isTwoFactorPending ? (
+                <Navigate to="/qr" />
+              ) : role === "superadmin" && isAuthenticated ? (
                 <Navigate to="/admin/dashboard" />
               ) : role === "user" && isAuthenticated ? (
                 <Navigate to="/user/dashboard" />

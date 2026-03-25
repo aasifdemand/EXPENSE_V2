@@ -108,7 +108,9 @@ export const useExpenses = (externalParams = {}) => {
   );
 
   // Logic to determine main data feed for tables
-  const mainQueryResult = hasFilters ? searchQuery : (isAdmin ? getExpensesQuery : userExpensesQuery);
+  const mainQueryResult = hasFilters 
+    ? searchQuery 
+    : (isAdmin && !externalParams.forceUser ? getExpensesQuery : userExpensesQuery);
   
   const expenses = useMemo(() => mainQueryResult.data?.data || [], [mainQueryResult.data?.data]);
   const meta = useMemo(() => mainQueryResult.data?.meta || { total: 0, page, limit }, [mainQueryResult.data?.meta, page, limit]);

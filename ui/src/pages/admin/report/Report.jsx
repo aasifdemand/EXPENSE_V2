@@ -13,9 +13,10 @@ import { StatCard } from "../../../components/ui/StatCard";
 import { Badge } from "../../../components/ui/Badge";
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
-import { Building2 } from "lucide-react";
+import { Building2, X } from "lucide-react";
 import { useLocation } from "../../../contexts/LocationContext";
 import PageHeader from "../../../components/ui/PageHeader";
+import Modal from "../../../components/ui/Modal";
 import { useGetBudgetsQuery } from "../../../store/budgetApi";
 import { useGetExpensesQuery } from "../../../store/expenseApi";
 import { useGetReimbursementsQuery } from "../../../store/reimbursementApi";
@@ -42,6 +43,9 @@ const Report = () => {
     dateStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     dateEnd: new Date().toISOString().split('T')[0]
   });
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [pendingExportType, setPendingExportType] = useState(null);
 
 
   const reportData = useMemo(() => {
@@ -80,29 +84,32 @@ const Report = () => {
   const exportPDF = () => {
     const doc = new jsPDF();
     
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(30, 41, 59);
-    doc.setFont(undefined, "bold");
-    doc.text("DEMANDCURVE", 105, 20, { align: "center" });
-    
+    // Header Branding
+    try {
+      doc.addImage("/image.png", "PNG", 55, 10, 100, 28);
+    } catch (e) {
+      console.error("Could not load logo", e);
+    }
+
     doc.setFontSize(16);
-    doc.text(`${filter.type.toUpperCase()} REPORT`, 105, 30, { align: "center" });
+    doc.setTextColor(79, 70, 229); // Primary Purple
+    doc.setFont(undefined, "bold");
+    doc.text(`${filter.type.toUpperCase()} REPORT`, 105, 48, { align: "center" });
     
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
     doc.setFont(undefined, "normal");
-    doc.text(`Location: ${currentLoc} | Period: ${filter.dateStart} to ${filter.dateEnd}`, 105, 38, { align: "center" });
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 44, { align: "center" });
+    doc.text(`Location: ${currentLoc} | Period: ${filter.dateStart} to ${filter.dateEnd}`, 105, 56, { align: "center" });
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 62, { align: "center" });
 
     // Dataset Summary Section
     doc.setFontSize(12);
     doc.setTextColor(30, 41, 59);
     doc.setFont(undefined, "bold");
-    doc.text("Dataset Summary", 14, 55);
+    doc.text("Dataset Summary", 14, 75);
 
     autoTable(doc, {
-      startY: 60,
+      startY: 80,
       head: [["Metric", "Value"]],
       body: [
         ["Report Type", filter.type.charAt(0).toUpperCase() + filter.type.slice(1)],
@@ -176,7 +183,7 @@ const Report = () => {
 
   const exportCSV = () => {
     const headers = filter.type === "expenses" 
-      ? "Date,Category,Amount,Description,User\n"
+      ? "Date,Category,Vendor,Amount,Description,User\n"
       : filter.type === "budgets"
       ? "User/Dept,Allocated,Spent,Remaining,Month/Year\n"
       : "Date,Requester,Amount,Status\n";
@@ -185,7 +192,7 @@ const Report = () => {
       if (filter.type === "expenses") {
         const cat = item.subDepartment?.name || item.department?.name || "N/A";
         const usr = item.user?.name || item.user || "N/A";
-        return `${new Date(item.date).toLocaleDateString()},${cat},${item.amount},"${item.description || ""}",${usr}`;
+        return `${new Date(item.date).toLocaleDateString()},"${cat}","${item.vendor || ""}",${item.amount},"${item.description || ""}",${usr}`;
       }
       if (filter.type === "budgets") {
         const usr = item.user?.name || item.user || "N/A";
@@ -202,6 +209,12 @@ const Report = () => {
     a.click();
   };
 
+  const handleConfirmExport = () => {
+    if (pendingExportType === "PDF") exportPDF();
+    else if (pendingExportType === "CSV") exportCSV();
+    setShowExportModal(false);
+  };
+
   return (
     <div className="p-4 md:p-8 lg:p-12 animate-in fade-in duration-500">
       <div className="max-w-[1600px] mx-auto space-y-8">
@@ -210,16 +223,28 @@ const Report = () => {
           highlight="Reports"
           subtitle="Unified analytics and detailed auditing for financial oversight."
           actions={
-            <>
-              <Button onClick={exportPDF} variant="outline" className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs uppercase border-slate-200">
+            <div className="flex gap-4">
+              <Button 
+                onClick={() => {
+                  setPendingExportType("PDF");
+                  setShowExportModal(true);
+                }} 
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider bg-linear-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 transition-all duration-300 border-none"
+              >
                 <FileText className="w-4 h-4" />
                 PDF Export
               </Button>
-              <Button onClick={exportCSV} variant="outline" className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs uppercase border-slate-200">
+              <Button 
+                onClick={() => {
+                  setPendingExportType("CSV");
+                  setShowExportModal(true);
+                }} 
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider bg-linear-to-br from-primary-400 to-primary-600 text-white shadow-lg shadow-primary-400/20 hover:shadow-primary-400/35 hover:-translate-y-0.5 transition-all duration-300 border-none"
+              >
                 <TableIcon className="w-4 h-4" />
                 CSV Export
               </Button>
-            </>
+            </div>
           }
         />
 
@@ -257,7 +282,6 @@ const Report = () => {
               <Input 
                 label="Start Date"
                 type="date"
-                icon={Calendar}
                 className="h-10 text-[10px] font-medium uppercase tracking-widest bg-slate-50/50 border-slate-200/60 focus:bg-white transition-all shadow-none"
                 value={filter.dateStart}
                 onChange={e => setFilter({ ...filter, dateStart: e.target.value })}
@@ -266,7 +290,6 @@ const Report = () => {
               <Input 
                 label="End Date"
                 type="date"
-                icon={Calendar}
                 className="h-10 text-[10px] font-medium uppercase tracking-widest bg-slate-50/50 border-slate-200/60 focus:bg-white transition-all shadow-none"
                 value={filter.dateEnd}
                 onChange={e => setFilter({ ...filter, dateEnd: e.target.value })}
@@ -355,6 +378,62 @@ const Report = () => {
           </table>
         </div>
       </Card>
+
+      <Modal 
+        isOpen={showExportModal} 
+        onClose={() => setShowExportModal(false)} 
+        title="Confirm Export"
+      >
+        <div className="space-y-6 text-center">
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center">
+            <FileText className="w-8 h-8 text-primary-600" />
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-lg font-bold text-slate-800 uppercase tracking-tight">
+              {pendingExportType} Generation
+            </h3>
+            <p className="text-sm text-slate-500 font-medium">
+              You are about to export the following data:
+            </p>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 text-left space-y-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400 font-medium tracking-wide uppercase text-[10px]">Report Category</span>
+              <span className="text-slate-700 font-bold uppercase">{filter.type}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400 font-medium tracking-wide uppercase text-[10px]">Date Range</span>
+              <span className="text-slate-700 font-bold">{filter.dateStart} to {filter.dateEnd}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-200">
+              <span className="text-slate-400 font-medium tracking-wide uppercase text-[10px]">Total Records</span>
+              <Badge variant="secondary" className="font-bold">{reportData.length}</Badge>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400 font-medium tracking-wide uppercase text-[10px]">Total Amount</span>
+              <span className="text-primary-600 font-black">₹{totalAmount.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowExportModal(false)}
+              className="flex-1 rounded-xl py-6 font-bold uppercase text-[10px] tracking-widest border-slate-200"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmExport}
+              className="flex-1 rounded-xl py-6 font-bold uppercase text-[10px] tracking-widest bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/25 text-white"
+            >
+              Download {pendingExportType}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   </div>
 );

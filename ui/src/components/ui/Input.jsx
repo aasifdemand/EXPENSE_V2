@@ -29,8 +29,8 @@ const Input = React.forwardRef(
             {...props}
           />
           {RightIcon && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted flex items-center justify-center">
-              {typeof RightIcon === 'function' ? <RightIcon size={18} /> : RightIcon}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted flex items-center justify-center pointer-events-none">
+              {React.isValidElement(RightIcon) ? RightIcon : <RightIcon size={18} />}
             </div>
           )}
         </div>

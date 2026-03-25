@@ -41,7 +41,7 @@ const Sidebar = ({ open, onClose, menuItems }) => {
     <div className="flex flex-col h-full bg-surface border-r border-border w-64 md:w-68 transition-all">
       {/* Logo Area */}
       <div className="flex items-center justify-center p-3 h-20 bg-white border-b border-border/40">
-        <img src="/image.png" alt="Logo" className="h-12 w-auto object-fit" />
+        <img src="/image.png" alt="Logo" className="h-14 w-full  object-fit" />
       </div>
 
       <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1">

@@ -3,9 +3,9 @@ import { apiSlice } from "./apiSlice";
 export const budgetApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBudgets: builder.query({
-      query: ({ page = 1, limit = 5, month = "", year = "", company = "", location = "OVERALL" }) => ({
+      query: ({ userId, page = 1, limit = 5, month = "", year = "", company = "", location = "OVERALL" }) => ({
         url: "/budget",
-        params: { page, limit, month, year, company, location },
+        params: { userId, page, limit, month, year, company, location },
       }),
       providesTags: (result) =>
         result?.data

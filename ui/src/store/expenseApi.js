@@ -63,7 +63,10 @@ export const expenseApi = apiSlice.injectEndpoints({
       invalidatesTags: [
         { type: "Expense", id: "LIST" },
         { type: "Expense", id: "USER_LIST" },
-        { type: "Budget", id: "LIST" }, // Budget changes when expense added
+        { type: "Budget", id: "LIST" },
+        { type: "Budget", id: "USER_LIST" },
+        { type: "Reimbursement", id: "LIST" },
+        { type: "Reimbursement", id: "USER_LIST" },
       ],
     }),
 
@@ -77,6 +80,10 @@ export const expenseApi = apiSlice.injectEndpoints({
         { type: "Expense", id },
         { type: "Expense", id: "LIST" },
         { type: "Expense", id: "USER_LIST" },
+        { type: "Budget", id: "LIST" },
+        { type: "Budget", id: "USER_LIST" },
+        { type: "Reimbursement", id: "LIST" },
+        { type: "Reimbursement", id: "USER_LIST" },
       ],
     }),
 
@@ -88,6 +95,10 @@ export const expenseApi = apiSlice.injectEndpoints({
       invalidatesTags: [
         { type: "Expense", id: "LIST" },
         { type: "Expense", id: "USER_LIST" },
+        { type: "Budget", id: "LIST" },
+        { type: "Budget", id: "USER_LIST" },
+        { type: "Reimbursement", id: "LIST" },
+        { type: "Reimbursement", id: "USER_LIST" },
       ],
     }),
   }),

@@ -28,7 +28,7 @@ const UserReimbursements = () => {
   const pagination = reimbData?.pagination || { totalItems: 0, totalPages: 0, currentPage: 1, itemsPerPage: 10 };
   const reimbStats = reimbData?.stats || {};
 
-  const getAmount = (item) => Number(item?.expense?.fromReimbursement || item?.amount || 0);
+  
 
   const stats = [
     {
@@ -115,34 +115,92 @@ const UserReimbursements = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 uppercase text-[10px] font-semibold tracking-widest">
                 <tr>
-                  <th className="px-6 py-5">Request Date</th>
-                  <th className="px-6 py-5">Amount</th>
-                  <th className="px-6 py-5">Description</th>
+                  <th className="px-6 py-5">Date & Time</th>
+                  <th className="px-6 py-5">Claim Amount</th>
+                  <th className="px-6 py-5">Budget coverage</th>
+                  <th className="px-6 py-5">Info & Context</th>
                   <th className="px-6 py-5">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">Loading claims...</td>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
+                       <div className="flex flex-col items-center gap-3">
+                        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                        Loading claims...
+                      </div>
+                    </td>
                   </tr>
                 ) : userReimbursements.length > 0 ? userReimbursements.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-600">
-                      {new Date(item.createdAt || item.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-slate-900">₹{getAmount(item).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-500">{item.description || "N/A"}</td>
+                  <tr key={idx} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-6 py-4">
-                      <Badge variant={item.isReimbursed ? "success" : "warning"} className="font-semibold text-[10px]">
-                        {item.isReimbursed ? "PAID" : "PENDING"}
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-slate-700 text-[13px]">
+                          {new Date(item.createdAt || item.date).toLocaleDateString()}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-rose-600 text-[14px]">
+                          ₹{Number(item.expense?.fromReimbursement || item.amount || 0).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold tracking-tighter">
+                          Total: ₹{Number(item.expense?.amount || item.amount || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-blue-600 font-semibold text-[13px]">
+                        ₹{Number(item.expense?.fromAllocation || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                       <div className="flex flex-col">
+                        <span className="font-semibold text-slate-700 text-[13px] line-clamp-1">
+                          {item.expense?.description || item.description || "No description provided"}
+                        </span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
+                            {item.expense?.department?.name || "General"}
+                          </span>
+                          {item.expense?.vendor && (
+                            <span className="text-[10px] text-slate-400 italic">
+                              at {item.expense.vendor}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge 
+                        variant={item.isReimbursed ? "success" : "warning"} 
+                        className={cn(
+                          "font-bold text-[10px] px-3 py-1 rounded-lg border-none flex items-center gap-1.5 w-fit",
+                          item.isReimbursed ? "bg-green-50 text-green-600" : "bg-amber-50 text-amber-600"
+                        )}
+                      >
+                        {item.isReimbursed ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3" />
+                            PAID
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-3 h-3" />
+                            PENDING
+                          </>
+                        )}
                       </Badge>
                     </td>
                   </tr>
                 )) : (
-
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No reimbursement requests found.</td>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No reimbursement requests found.</td>
                   </tr>
                 )}
               </tbody>

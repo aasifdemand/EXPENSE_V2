@@ -119,7 +119,7 @@ const AdminDashboard = () => {
   const totalPendingReimbursed = reimbStats?.totalPendingAmount || 0;
   const totalReimbursed = reimbStats?.totalReimbursedAmount || 0;
 
-  const totalExpenses = (Number(budgetStats?.totalSpent || 0) + Number(totalReimbursed) + Number(adminStats?.totalSpent || 0));
+  const totalExpenses = (Number(budgetStats?.totalSpent || 0) + Number(totalReimbursed) + Number(totalPendingReimbursed) + Number(adminStats?.totalSpent || 0));
 
   const statsConfig = [
     {

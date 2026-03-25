@@ -13,8 +13,8 @@ import {
   BarChart3,
   Calendar
 } from "lucide-react";
-import { useGetBudgetsQuery } from "../../store/budgetApi";
-import { useGetReimbursementsQuery } from "../../store/reimbursementApi";
+import { useGetUserBudgetsQuery } from "../../store/budgetApi";
+import { useGetUserReimbursementsQuery } from "../../store/reimbursementApi";
 import { useExpenses } from "../../hooks/useExpenses";
 
 import { 
@@ -50,24 +50,26 @@ const UserDashboard = () => {
 
   const { user } = useSelector((state) => state?.auth || {});
   
-  // RTK Query fetches
-  const { data: reimbData } = useGetReimbursementsQuery({ userId: user?.id }, { skip: !user?.id });
-  const { data: budgetData } = useGetBudgetsQuery({ userId: user?.id, limit: 1000 }, { skip: !user?.id });
+  // RTK Query fetches (Strictly User-Scoped)
+  const { data: reimbData } = useGetUserReimbursementsQuery({ userId: user?.id }, { skip: !user?.id });
+  const { data: budgetData } = useGetUserBudgetsQuery({ userId: user?.id, limit: 1000 }, { skip: !user?.id });
   
   const reimbursements = useMemo(() => reimbData?.data || [], [reimbData]);
   const budgets = useMemo(() => budgetData?.data || [], [budgetData]);
   
-  const { allExpenses } = useExpenses();
+  // Force user-scoping in hook even for admins
+  const { allExpenses } = useExpenses({ forceUser: true });
 
 
 
-  const totalAllocated = useMemo(() => budgets?.reduce((acc, b) => acc + Number(b?.allocatedAmount || 0), 0) || 0, [budgets]);
-  const totalSpentFromBudget = useMemo(() => budgets?.reduce((acc, b) => acc + Number(b?.spentAmount || 0), 0) || 0, [budgets]);
+  // Use stats from API responses for better accuracy
+  const totalAllocated = budgetData?.stats?.totalAllocated || 0;
+  const totalSpentFromBudget = budgetData?.stats?.totalSpent || 0;
 
-  const totalReimbursed = useMemo(() => reimbursements?.filter(r => r.isReimbursed).reduce((acc, r) => acc + Number(r.amount || 0), 0) || 0, [reimbursements]);
-  const totalPendingClaims = useMemo(() => reimbursements?.filter(r => !r.isReimbursed).reduce((acc, r) => acc + Number(r.amount || 0), 0) || 0, [reimbursements]);
+  const totalReimbursed = reimbData?.stats?.totalReimbursedAmount || 0;
+  const totalPendingClaims = reimbData?.stats?.totalPendingAmount || 0;
   
-  const totalSpent = totalSpentFromBudget + totalReimbursed;
+  const totalSpent = totalSpentFromBudget + totalReimbursed + totalPendingClaims;
 
   // Updated Trend Data Logic (Matches Admin for better reliability)
   const chartData = useMemo(() => {

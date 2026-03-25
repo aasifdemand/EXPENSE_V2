@@ -137,6 +137,31 @@ export const authApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["User"],
     }),
+
+    generate2faSecret: builder.mutation({
+      query: () => ({
+        url: "/auth/2fa/generate",
+        method: "POST",
+      }),
+    }),
+
+    enable2fa: builder.mutation({
+      query: (otp) => ({
+        url: "/auth/2fa/enable",
+        method: "POST",
+        body: { token: otp },
+      }),
+      invalidatesTags: ["User"],
+    }),
+
+    disable2fa: builder.mutation({
+      query: (otp) => ({
+        url: "/auth/2fa/disable",
+        method: "POST",
+        body: { token: otp },
+      }),
+      invalidatesTags: ["User"],
+    }),
   }),
 });
 
@@ -151,4 +176,7 @@ export const {
   useResetPasswordMutation,
   useUpdateProfileMutation,
   useVerify2FAMutation,
+  useGenerate2faSecretMutation,
+  useEnable2faMutation,
+  useDisable2faMutation,
 } = authApi;

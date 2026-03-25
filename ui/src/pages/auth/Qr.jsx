@@ -44,7 +44,7 @@ const QRVerification = () => {
 
     return (
         <Card className="w-full max-w-md relative z-10 shadow-[0_20px_50px_rgba(124,58,237,0.12)] border-border/40 bg-surface/98 backdrop-blur-2xl rounded-2xl overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary-400 via-primary-600 to-primary-800" />
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-primary-400 via-primary-600 to-primary-800" />
             
             <CardHeader className="text-center pt-10 pb-6">
                 <div className="mx-auto mb-6 bg-primary-50 max-w-fit rounded-2xl p-4 border border-primary-100 shadow-inner">
@@ -54,7 +54,7 @@ const QRVerification = () => {
                     Security <span className="text-primary-600">Verification</span>
                 </CardTitle>
                 <p className="text-sm font-medium text-slate-500">
-                    Scan the QR code with your authenticator app
+                    {qr ? "Scan the QR code with your authenticator app" : "Enter the 6-digit code from your authenticator app"}
                 </p>
             </CardHeader>
 

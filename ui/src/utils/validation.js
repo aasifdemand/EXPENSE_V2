@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const expenseSchema = z.object({
   description: z.string().min(3, "Description must be at least 3 characters").max(100, "Description too long"),
+  vendor: z.string().min(2, "Vendor name must be at least 2 characters").max(50, "Vendor name too long"),
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Invalid date format",
   }),
@@ -16,7 +17,7 @@ export const expenseSchema = z.object({
 
 export const validateStep = (step, data) => {
   let fieldsToValidate = [];
-  if (step === 1) fieldsToValidate = ["description", "date"];
+  if (step === 1) fieldsToValidate = ["description", "vendor", "date"];
   if (step === 2) fieldsToValidate = ["departmentId", "subDepartmentId"];
   if (step === 3) fieldsToValidate = ["amount"];
 

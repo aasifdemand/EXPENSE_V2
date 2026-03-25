@@ -5,7 +5,8 @@ import {
   PieChart, 
   Wallet, 
   Settings,
-  CreditCard
+  CreditCard,
+  FileText
 } from "lucide-react";
 
 import Sidebar from "../components/layout/Sidebar";
@@ -16,6 +17,7 @@ const userMenuItems = [
   { text: "Budgeting", icon: PieChart, path: "/user/budgeting" },
   { text: "Expenses", icon: Wallet, path: "/user/expenses" },
   { text: "Reimbursements", icon: CreditCard, path: "/user/reimbursements" },
+  { text: "Reports", icon: FileText, path: "/user/report" },
   { text: "Settings", icon: Settings, path: "/user/settings" },
 ];
 

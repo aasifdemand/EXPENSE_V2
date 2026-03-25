@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { useExpenses } from "../../../hooks/useExpenses";
-import { useSelector, useDispatch } from "react-redux";
-import { fetchReimbursementsForUser } from "../../../store/reimbursementSlice";
+import { useSelector } from "react-redux";
+import { useGetUserReimbursementsQuery } from "../../../store/reimbursementApi";
 import ExpenseTable from "../../../components/expenses/ExpenseTable";
 import { Plus, Building2, TrendingUp, CreditCard, PieChart } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
@@ -9,12 +9,11 @@ import { StatCard } from "../../../components/ui/StatCard";
 import PageHeader from "../../../components/ui/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import MultiStepExpenseForm from "../../../components/expenses/MultiStepExpenseForm";
-import { useState } from "react";
 
 const Expenses = () => {
   const {
     expenses,
-    loading,
+    loading: expensesLoading,
     meta,
     page,
     setPage,
@@ -25,16 +24,18 @@ const Expenses = () => {
     stats: expenseStats,
   } = useExpenses();
 
-  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { userReimbursements } = useSelector((state) => state.reimbursement);
+  
+  // Fetch reimbursements using RTK Query
+  const { data: reimbursementData, isLoading: reimbursementsLoading } = useGetUserReimbursementsQuery(
+    { userId: user?.id },
+    { skip: !user?.id }
+  );
+
+  const userReimbursements = reimbursementData?.data || [];
   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      dispatch(fetchReimbursementsForUser({ id: user.id }));
-    }
-  }, [dispatch, user?.id]);
+  const loading = expensesLoading || reimbursementsLoading;
 
   const totalSpent = Number(expenseStats?.totalSpent || 0);
   const fromAllocation = Number(expenseStats?.totalFromAllocation || 0);

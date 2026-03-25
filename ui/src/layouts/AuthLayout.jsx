@@ -9,7 +9,7 @@ import { Square, Triangle } from "lucide-react";
  */
 const AuthLayout = () => {
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#fcfaff] relative overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-slate-50 relative overflow-hidden">
       {/* Premium Mesh Gradient Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[60vw] h-[60vw] rounded-full bg-primary-100/40 blur-[120px] animate-pulse" />
@@ -20,22 +20,22 @@ const AuthLayout = () => {
       {/* Decorative Geometric Objects - Vibrant and Animated */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Shape 1: Large Outlined Top Right - Triangle */}
-        <div className="absolute top-[8%] right-[12%] text-primary-400 opacity-30 transform scale-[2] rotate-[15deg] animate-float">
+        <div className="absolute top-[8%] right-[12%] text-primary-400 opacity-30 transform scale-[2] rotate-15 animate-float">
             <Triangle size={80} strokeWidth={1} />
         </div>
 
         {/* Shape 2: Medium Filled Middle Left - Square */}
-        <div className="absolute top-[35%] left-[6%] text-primary-500 opacity-35 transform -rotate-[20deg] animate-float-delayed">
+        <div className="absolute top-[35%] left-[6%] text-primary-500 opacity-35 transform -rotate-20 animate-float-delayed">
             <Square size={60} fill="currentColor" strokeWidth={0} />
         </div>
 
         {/* Shape 3: Large Filled Bottom Left - Triangle */}
-        <div className="absolute bottom-[12%] left-[15%] text-primary-300 opacity-40 transform rotate-[35deg] animate-float">
+        <div className="absolute bottom-[12%] left-[15%] text-primary-300 opacity-40 transform rotate-35 animate-float">
             <Triangle size={100} fill="currentColor" strokeWidth={0} />
         </div>
 
         {/* Shape 4: Extra Large Outlined Bottom Right - Square */}
-        <div className="absolute bottom-[18%] right-[8%] text-primary-400 opacity-25 transform -rotate-[30deg] animate-float-delayed scale-150">
+        <div className="absolute bottom-[18%] right-[8%] text-primary-400 opacity-25 transform -rotate-30 animate-float-delayed scale-150">
             <Square size={120} strokeWidth={1.5} />
         </div>
 

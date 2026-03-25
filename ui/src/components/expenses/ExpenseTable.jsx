@@ -190,7 +190,7 @@ const ExpenseTable = ({
                           </button>
 
                           {activeMenuId === row.id && (
-                            <div className="absolute right-0 mt-2 w-36 bg-white border border-border rounded-xl shadow-xl z-[100] py-1.5 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="absolute right-0 mt-2 w-36 bg-white border border-border rounded-xl shadow-xl z-100 py-1.5 animate-in fade-in zoom-in-95 duration-200">
                               <button 
                                 onClick={() => onView?.(row)}
                                 className="w-full px-4 py-2 text-left text-xs font-medium text-text-primary hover:bg-slate-50 flex items-center gap-2 transition-colors"

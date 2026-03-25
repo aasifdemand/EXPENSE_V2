@@ -9,34 +9,6 @@ const safeJSONParse = (key, fallback = null) => {
   }
 };
 
-// ===================== LOGOUT =====================
-export const logout = createAsyncThunk(
-  "auth/logout",
-  async (_, { getState, rejectWithValue }) => {
-    try {
-      const csrf = getState().auth.csrf;
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASEURL}/auth/logout`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "x-csrf-token": csrf,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Logout request failed");
-      }
-
-      return true;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
 
 // ===================== FETCH ALL USERS =====================
 export const fetchAllUsers = createAsyncThunk(
@@ -260,27 +232,6 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Logout
-      .addCase(logout.pending, (state) => {
-        state.error = null;
-      })
-      .addCase(logout.fulfilled, (state) => {
-        state.isAuthenticated = false;
-        state.isTwoFactorVerified = false;
-        state.isTwoFactorPending = false;
-        state.role = null;
-        state.qr = null;
-        state.csrf = null;
-        state.loading = false;
-        state.users = [];
-        state.user = null;
-
-        localStorage.clear();
-      })
-      .addCase(logout.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
       // Fetch All Users
       .addCase(fetchAllUsers.pending, (state) => {
         state.userLoading = true;

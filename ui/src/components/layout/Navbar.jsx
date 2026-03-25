@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { Menu, LogOut, Building2, User, ChevronDown } from "lucide-react";
 
-import { useLocation as useRouteLocation } from "react-router-dom";
+import { useLocation as useRouteLocation, useNavigate } from "react-router-dom";
 import { useLocation } from "../../contexts/LocationContext";
-import { logout } from "../../store/authSlice";
+import { useLogoutMutation } from "../../store/authApi";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -19,8 +19,9 @@ const locations = [
 ];
 
 const Navbar = ({ onMenuClick }) => {
-  const dispatch = useDispatch();
-  const { user, csrf, loading: logoutLoader } = useSelector((state) => state?.auth || {});
+  const navigate = useNavigate();
+  const [logoutMutation, { isLoading: logoutLoader }] = useLogoutMutation();
+  const { user } = useSelector((state) => state?.auth || {});
   const { currentLoc, setCurrentLoc } = useLocation();
   const routeLocation = useRouteLocation();
   const isAdminPanel = routeLocation.pathname.startsWith("/admin");
@@ -30,9 +31,15 @@ const Navbar = ({ onMenuClick }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
-    await dispatch(logout(csrf));
-    setShowLogoutConfirm(false);
-    setIsProfileOpen(false);
+    try {
+      await logoutMutation().unwrap();
+      setShowLogoutConfirm(false);
+      setIsProfileOpen(false);
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      navigate("/login");
+    }
   };
 
   const currentLocationRecord = locations.find((l) => l.value === currentLoc) || locations[0];

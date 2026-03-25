@@ -8,8 +8,13 @@ import './index.css';
 import { store } from './store/store';
 import App from './App.jsx';
 import { LocationProvider } from './contexts/LocationContext';
+import { registerSW } from 'virtual:pwa-register';
+
+// Register PWA service worker
+registerSW({ immediate: true });
 
 createRoot(document.getElementById('root')).render(
+
   <StrictMode>
     <Provider store={store}>
       <LocationProvider>

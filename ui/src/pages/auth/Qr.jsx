@@ -1,21 +1,20 @@
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
-import { setAuthState } from "../../store/authSlice";
+import { useVerify2FAMutation } from "../../store/authApi";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { OTPInput } from "../../components/ui/OTPInput";
 
 const QRVerification = () => {
-    const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { qr } = useSelector((state) => state?.auth || {});
+    const { qr, role } = useSelector((state) => state?.auth || {});
 
     const [otp, setOtp] = useState("");
     const [error, setError] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [verify2FA, { isLoading }] = useVerify2FAMutation();
 
     const handleChange = (value) => {
         setOtp(value);
@@ -28,33 +27,18 @@ const QRVerification = () => {
             return;
         }
 
-        setIsLoading(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASEURL}/auth/2fa/verify`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: otp }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                dispatch(setAuthState({
-                    isTwoFactorPending: false,
-                    isTwoFactorVerified: true,
-                    isAuthenticated: true,
-                }));
-                // Navigate based on role (extracted from auth state or data if returned)
-                navigate("/user/dashboard"); // Assuming user dashboard drop-in for now
+            await verify2FA(otp).unwrap();
+            
+            // On success, navigate based on role
+            if (role === "superadmin") {
+                navigate("/admin/dashboard");
             } else {
-                setError(data.message || "Verification failed. Please try again.");
+                navigate("/user/dashboard");
             }
-        } catch (error) {
-            setError("Network error. Please try again.");
-            console.error(error);
-        } finally {
-            setIsLoading(false);
+        } catch (err) {
+            setError(err?.data?.message || "Verification failed. Please try again.");
+            console.error(err);
         }
     };
 

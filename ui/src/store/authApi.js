@@ -10,11 +10,17 @@ export const authApi = apiSlice.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           if (data?.user) {
-            dispatch(setAuthState({ user: data.user, isAuthenticated: true }));
+            dispatch(
+              setAuthState({
+                user: data.user,
+                isAuthenticated: data.authenticated,
+                isTwoFactorPending: data.twoFactorPending,
+                isTwoFactorVerified: data.authenticated && !data.twoFactorPending,
+                role: data.user.role,
+              })
+            );
           }
         } catch (err) {
-          // If 401/403, the baseQuery or interceptor should handle logout, 
-          // but we can be explicit here
           if (err.error?.status === 401 || err.error?.status === 403) {
             dispatch(forceLogout());
           }
@@ -122,6 +128,15 @@ export const authApi = apiSlice.injectEndpoints({
         { type: "User", id: "LIST" },
       ],
     }),
+
+    verify2FA: builder.mutation({
+      query: (otp) => ({
+        url: "/auth/2fa/verify",
+        method: "POST",
+        body: { token: otp },
+      }),
+      invalidatesTags: ["User"],
+    }),
   }),
 });
 
@@ -135,4 +150,5 @@ export const {
   useCreateUserMutation,
   useResetPasswordMutation,
   useUpdateProfileMutation,
+  useVerify2FAMutation,
 } = authApi;

@@ -59,29 +59,11 @@ const AuthLayout = () => {
       {/* Shared Footer */}
       <footer className="relative z-10 mt-12 text-center text-primary-900/30 font-normal">
         <p className="text-[11px] tracking-widest uppercase">
-          © {new Date().getFullYear()} Expense System. Secure Cloud Infrastructure.
+          © {new Date().getFullYear()} Expense System. Demand Curve Marketing
         </p>
       </footer>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0) scale(1); }
-          33% { transform: translateY(-15px) rotate(4deg) scale(1.05); }
-          66% { transform: translateY(10px) rotate(-3deg) scale(0.95); }
-        }
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0) rotate(0) scale(1); }
-          33% { transform: translateY(12px) rotate(-5deg) scale(0.98); }
-          66% { transform: translateY(-18px) rotate(3deg) scale(1.02); }
-        }
-        .animate-float {
-          animation: float 12s ease-in-out infinite;
-        }
-        .animate-float-delayed {
-          animation: float-delayed 15s ease-in-out infinite;
-          animation-delay: -5s;
-        }
-      `}} />
+     
     </div>
   );
 };

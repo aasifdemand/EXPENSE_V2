@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Loader2 } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/authSlice";
+import { LogOut, Loader2 } from "lucide-react"
+
+import { useLogoutMutation } from "../../store/authApi";
 import { Button } from "../ui/Button";
 import { cn } from "../../utils/utils";
 import ConfirmModal from "../ui/ConfirmModal";
 
 const Sidebar = ({ open, onClose, menuItems }) => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { csrf, loading: logoutLoader } = useSelector((state) => state?.auth || {});
+  const [logoutMutation, { isLoading: logoutLoader }] = useLogoutMutation();
   
   const [activeItem, setActiveItem] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -27,8 +26,15 @@ const Sidebar = ({ open, onClose, menuItems }) => {
   };
 
   const handleLogout = async () => {
-    await dispatch(logout(csrf));
-    setShowLogoutConfirm(false);
+    try {
+      await logoutMutation().unwrap();
+      setShowLogoutConfirm(false);
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      // forceLogout in authApi should have already cleared state
+      navigate("/login");
+    }
   };
 
   const sidebarContent = (

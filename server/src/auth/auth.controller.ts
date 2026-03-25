@@ -141,4 +141,31 @@ export class AuthController {
     // Users can only update their own profile
     return this.authService.updateProfile(updateProfileDto, id);
   }
+
+  // 🔑 Generate 2FA Secret
+  @Post('2fa/generate')
+  @UseGuards(CsrfGuard)
+  async generate2fa(@Req() req: Request) {
+    const userId = req?.session?.user?.id;
+    if (!userId) throw new UnauthorizedException('Not logged in');
+    return this.authService.generate2faSecret(userId);
+  }
+
+  // ✅ Enable 2FA
+  @Post('2fa/enable')
+  @UseGuards(CsrfGuard)
+  async enable2fa(@Req() req: Request, @Body() body: { token: string }) {
+    const userId = req?.session?.user?.id;
+    if (!userId) throw new UnauthorizedException('Not logged in');
+    return this.authService.enable2fa(userId, body.token, req);
+  }
+
+  // ❌ Disable 2FA
+  @Post('2fa/disable')
+  @UseGuards(CsrfGuard)
+  async disable2fa(@Req() req: Request, @Body() body: { token: string }) {
+    const userId = req?.session?.user?.id;
+    if (!userId) throw new UnauthorizedException('Not logged in');
+    return this.authService.disable2fa(userId, body.token, req);
+  }
 }

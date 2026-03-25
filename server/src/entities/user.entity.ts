@@ -43,8 +43,11 @@ export class User extends BaseEntity {
     role: UserRole;
 
     // ✅ Shared 2FA secret (across devices)
-    @Column({ nullable: true })
-    twoFactorSecret?: string;
+    @Column({ type: 'varchar', nullable: true })
+    twoFactorSecret?: string | null;
+
+    @Column({ default: false })
+    twoFactorEnabled: boolean;
 
     @Column({
         type: 'enum',

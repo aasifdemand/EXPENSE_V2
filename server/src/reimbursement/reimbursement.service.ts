@@ -61,6 +61,9 @@ export class ReimbursementService {
             qb.andWhere('user.userLoc = :location', { location });
         }
 
+        qb.leftJoinAndSelect('expense.department', 'dept')
+          .leftJoinAndSelect('expense.subDepartment', 'subDept');
+
         if (status === 'pending') {
             qb.andWhere('r.isReimbursed = :pending', { pending: false });
         }
@@ -201,6 +204,8 @@ export class ReimbursementService {
             .leftJoinAndSelect('reimbursement.requestedBy', 'user')
             .leftJoinAndSelect('reimbursement.expense', 'expense')
             .where('user.id = :userId', { userId })
+            .leftJoinAndSelect('expense.department', 'dept')
+            .leftJoinAndSelect('expense.subDepartment', 'subDept')
             .orderBy('reimbursement.createdAt', 'DESC')
             .skip(skip)
             .take(safeLimit);

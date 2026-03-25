@@ -1,5 +1,4 @@
 import 'express-session';
-import { User } from 'src/entities/user.entity'
 import { UserRole } from 'src/enums/user.enum';
 
 declare module 'express-session' {
@@ -9,10 +8,10 @@ declare module 'express-session' {
     role?: string;
     user?: {
       id?: string;
-      role?: UserRole
-      name?: string
+      role?: UserRole;
+      name?: string;
     };
-    twoFactorSecret?: string;
+    twoFactorSecret?: string | null;
     twoFactorPending?: boolean;
     twoFactorVerified?: boolean;
     authenticated?: boolean;

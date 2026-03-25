@@ -126,10 +126,7 @@ export class BudgetService {
       .orderBy('budget.createdAt', 'DESC');
 
     if (userId) {
-      const user = await this.userRepo.findOne({ where: { id: userId } });
-      if (user?.role === UserRole.USER) {
-        baseQB.andWhere('user.id = :userId', { userId });
-      }
+      baseQB.andWhere('user.id = :userId', { userId });
     }
 
     if (location && location !== 'OVERALL') {
@@ -286,9 +283,19 @@ export class BudgetService {
       take: safeLimit,
     });
 
+    const statsRaw = await this.budgetRepo.createQueryBuilder('budget')
+      .where('budget.userId = :userId', { userId })
+      .select('SUM(budget.allocatedAmount)', 'totalAllocated')
+      .addSelect('SUM(budget.spentAmount)', 'totalSpent')
+      .getRawOne();
+
     return {
       message: 'Fetched user budgets successfully',
       data,
+      stats: {
+        totalAllocated: Number(statsRaw?.totalAllocated || 0),
+        totalSpent: Number(statsRaw?.totalSpent || 0),
+      },
       meta: this.getPaginationMeta(total, safePage, safeLimit),
     };
 

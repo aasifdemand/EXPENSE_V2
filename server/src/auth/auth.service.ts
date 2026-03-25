@@ -42,36 +42,25 @@ export class AuthService {
       throw new UnauthorizedException('Invalid password');
     }
 
-    let qrCodeDataUrl: string | null = null;
+    const is2FAActive = !!(user.twoFactorSecret && user.twoFactorEnabled);
 
-    if (!user.twoFactorSecret) {
-      const secret = speakeasy.generateSecret({
-        name: `ExpenseManagement:${user.name}`,
-        issuer: 'ExpenseManagement',
-      });
-
-      user.twoFactorSecret = secret.base32;
-      await this.userRepository.save(user);
-
-      qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
-    }
-
-    req.session.user = { id: user.id, role: user?.role };
-    req.session.twoFactorPending = true;
-    req.session.twoFactorVerified = false;
-    req.session.authenticated = false;
+    req.session.user = { id: user.id, role: user.role };
+    req.session.twoFactorPending = is2FAActive;
+    req.session.twoFactorVerified = !is2FAActive;
+    req.session.authenticated = !is2FAActive;
     await this.saveSession(req);
 
     return {
-      qr: qrCodeDataUrl,
+      qr: null, // QR now handled in Settings
       user: {
         id: user.id,
         name: user.name,
         role: user.role,
-        has2FA: !!user.twoFactorSecret,
-        twoFactorPending: true,
-        twoFactorVerified: false,
-        authenticated: false,
+        has2FA: is2FAActive,
+        twoFactorEnabled: user.twoFactorEnabled,
+        twoFactorPending: is2FAActive,
+        twoFactorVerified: !is2FAActive,
+        authenticated: !is2FAActive,
       },
     };
   }
@@ -171,14 +160,91 @@ export class AuthService {
         'reimbursedAmount',
         'allocatedAmount',
         'budgetLeft',
+        'twoFactorEnabled',
       ],
     });
 
     return {
-      user,
-      twoFactorPending: req.session.twoFactorPending,
-      authenticated: req.session.authenticated,
+      user: {
+        ...user,
+      },
+      twoFactorPending: !!req.session.twoFactorPending,
+      authenticated: !!req.session.authenticated,
     };
+  }
+
+  /* ===========================
+     2FA MANAGEMENT (SETTINGS)
+     =========================== */
+
+  async generate2faSecret(userId: string) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new NotFoundException('User not found');
+
+    const secret = speakeasy.generateSecret({
+      name: `ExpenseManagement:${user.name}`,
+      issuer: 'ExpenseManagement',
+    });
+
+    user.twoFactorSecret = secret.base32;
+    user.twoFactorEnabled = false; // Don't enable until verified
+    await this.userRepository.save(user);
+
+    const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
+    return { qr: qrCodeDataUrl, secret: secret.base32 };
+  }
+
+  async enable2fa(userId: string, token: string, req: Request) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user || !user.twoFactorSecret) {
+      throw new BadRequestException('2FA not configured');
+    }
+
+    const isValid = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+
+    if (!isValid) throw new BadRequestException('Invalid OTP');
+
+    user.twoFactorEnabled = true;
+    await this.userRepository.save(user);
+
+    // Sync session
+    req.session.twoFactorVerified = true;
+    req.session.twoFactorPending = false;
+    await this.saveSession(req);
+
+    return { message: '2FA enabled successfully', user: { ...user, password: '', twoFactorSecret: '' } };
+  }
+
+  async disable2fa(userId: string, token: string, req: Request) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user || !user.twoFactorSecret) {
+      throw new BadRequestException('2FA not enabled');
+    }
+
+    const isValid = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+
+    if (!isValid) throw new BadRequestException('Invalid OTP');
+
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = null; // Clear secret
+    await this.userRepository.save(user);
+
+    // Sync session
+    req.session.twoFactorVerified = true; // Technically still verified as "authenticated"
+    req.session.twoFactorPending = false;
+    await this.saveSession(req);
+
+    return { message: '2FA disabled successfully', user: { ...user, password: '', twoFactorSecret: '' } };
   }
 
   /* ===========================

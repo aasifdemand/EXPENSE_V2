@@ -8,6 +8,7 @@ import {
     ManyToMany,
     JoinTable,
     BaseEntity,
+    Index,
 } from 'typeorm';
 
 import { UserRole, UserDepartment, UserLocation } from 'src/enums/user.enum';
@@ -24,6 +25,7 @@ export class User extends BaseEntity {
     name: string;
 
     @Column({ nullable: true })
+    @Index()
     email?: string;
 
     @Column({ nullable: true })
@@ -37,6 +39,7 @@ export class User extends BaseEntity {
         enum: UserRole,
         default: UserRole.USER,
     })
+    @Index()
     role: UserRole;
 
     // ✅ Shared 2FA secret (across devices)
@@ -55,6 +58,7 @@ export class User extends BaseEntity {
         enum: UserLocation,
         default: UserLocation.OVERALL,
     })
+    @Index()
     userLoc: UserLocation;
 
     /* ===========================

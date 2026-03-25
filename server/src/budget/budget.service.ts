@@ -37,6 +37,15 @@ export class BudgetService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) { }
 
+  private getPaginationMeta(total: number, page: number, limit: number, location?: string) {
+    return {
+      total,
+      page,
+      limit,
+      location: location || 'OVERALL',
+    };
+  }
+
   /* =====================================================
      ALLOCATE BUDGET
      ===================================================== */
@@ -137,17 +146,30 @@ export class BudgetService {
     // ✅ ALL DATA FOR STATS
     const allBudgets = await baseQB.clone().getMany();
 
+    // ✅ Calculate Stats (location aware)
+    const statsQB = this.budgetRepo.createQueryBuilder('budget')
+      .leftJoin('budget.user', 'user');
+
+    if (location && location !== 'OVERALL') {
+      statsQB.andWhere('user.userLoc = :location', { location });
+    }
+
+    const statsRaw = await statsQB
+      .select('SUM(budget.allocatedAmount)', 'totalAllocated')
+      .addSelect('SUM(budget.spentAmount)', 'totalSpent')
+      .getRawOne();
+
     return {
       message: 'Fetched budgets successfully',
       data,
       allBudgets,
-      meta: {
-        total,
-        page: safePage,
-        limit: safeLimit,
+      stats: {
+        totalAllocated: Number(statsRaw?.totalAllocated || 0),
+        totalSpent: Number(statsRaw?.totalSpent || 0),
       },
-      location: location || 'OVERALL',
+      meta: this.getPaginationMeta(total, safePage, safeLimit, location),
     };
+
   }
 
   /* =====================================================
@@ -218,17 +240,35 @@ export class BudgetService {
     // ✅ FULL DATA FOR STATS
     const allBudgets = await qb.clone().getMany();
 
+    // ✅ Calculate Stats (location aware)
+    const statsQB = this.budgetRepo.createQueryBuilder('budget')
+      .leftJoin('budget.user', 'user');
+
+    if (location && location !== 'OVERALL') {
+      statsQB.andWhere('user.userLoc = :location', { location });
+    }
+    // and re-apply filters if needed?
+    // Actually search filters SHOULD be applied to stats too
+    if (month) statsQB.andWhere('budget.month = :month', { month });
+    if (year) statsQB.andWhere('budget.year = :year', { year });
+    if (company) statsQB.andWhere('budget.company = :company', { company });
+
+    const statsRaw = await statsQB
+      .select('SUM(budget.allocatedAmount)', 'totalAllocated')
+      .addSelect('SUM(budget.spentAmount)', 'totalSpent')
+      .getRawOne();
+
     return {
       message: 'Fetched budgets successfully',
       data,
       allBudgets,
-      meta: {
-        total,
-        page: safePage,
-        limit: safeLimit,
+      stats: {
+        totalAllocated: Number(statsRaw?.totalAllocated || 0),
+        totalSpent: Number(statsRaw?.totalSpent || 0),
       },
-      location: location || 'OVERALL',
+      meta: this.getPaginationMeta(total, safePage, safeLimit, location),
     };
+
   }
 
   /* =====================================================
@@ -249,12 +289,9 @@ export class BudgetService {
     return {
       message: 'Fetched user budgets successfully',
       data,
-      meta: {
-        total,
-        page: safePage,
-        limit: safeLimit,
-      },
+      meta: this.getPaginationMeta(total, safePage, safeLimit),
     };
+
   }
 
   /* =====================================================

@@ -1,0 +1,371 @@
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import toast from "react-hot-toast";
+
+const initialState = {
+  budgets: [], // paginated table
+  allBudgets: [], // legacy support
+  statsBudgets: [], // Map-accumulated for local stats (if used)
+  stats: {
+    totalAllocated: 0,
+    totalSpent: 0,
+  },
+  budget: null,
+  loading: false,
+  error: null,
+  meta: { total: 0, page: 1, limit: 20 },
+};
+
+// --- Allocate Budget ---
+export const allocateBudget = createAsyncThunk(
+  "budget/allocate",
+  async (budgetData, { getState, rejectWithValue }) => {
+    try {
+      const csrf = getState().auth.csrf;
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASEURL}/budget/allocate`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": csrf,
+          },
+          body: JSON.stringify(budgetData),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to allocate budget");
+      const data = await response.json();
+      return data?.budget;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const fetchBudgets = createAsyncThunk(
+  "budget/fetchAll",
+  async (
+    {
+      page = 1,
+      limit = 10,
+      month = "",
+      year = "",
+      company,
+      userId,
+      location = "OVERALL",
+    },
+    { getState, rejectWithValue },
+  ) => {
+    try {
+      const csrf = getState().auth.csrf;
+      const query = new URLSearchParams();
+
+      if (userId) query.append("userId", String(userId));
+      if (page) query.append("page", String(page));
+      if (limit) query.append("limit", String(limit));
+      if (location) query.append("location", String(location));
+      if (company && company !== "undefined") query.append("company", String(company));
+
+      if (month) query.append("month", String(month));
+      if (year) query.append("year", String(year));
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASEURL}/budget?${query.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", "x-csrf-token": csrf },
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch budgets");
+
+      const data = await response.json();
+
+      return {
+        budgets: data?.data || [],
+        allBudgets: data?.allBudgets || [],
+        stats: data?.stats || null,
+        location: data?.location || "OVERALL",
+        meta: data?.meta || {
+          total: 0,
+          page,
+          limit,
+        },
+      };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+// --- Search Budgets ---
+export const searchBudgets = createAsyncThunk(
+  "budget/search",
+  async (
+    {
+      company,
+      userName = "",
+      month = "",
+      year = "",
+      minAllocated,
+      maxAllocated,
+      minSpent,
+      maxSpent,
+      page = 1,
+      limit = 10,
+      location = "OVERALL",
+    },
+    { getState, rejectWithValue },
+  ) => {
+    try {
+      const csrf = getState().auth.csrf;
+      const query = new URLSearchParams({
+        ...(userName && { userName }),
+        ...(month && { month: String(month) }),
+        ...(year && { year: String(year) }),
+        ...(minAllocated !== undefined && { minAllocated }),
+        ...(maxAllocated !== undefined && { maxAllocated }),
+        ...(minSpent !== undefined && { minSpent }),
+        ...(maxSpent !== undefined && { maxSpent }),
+        ...(company && { company }),
+        page: String(page),
+        limit: String(limit),
+        location: String(location),
+      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASEURL}/budget/search?${query.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", "x-csrf-token": csrf },
+        },
+      );
+      if (!response.ok) throw new Error("Failed to search budgets");
+
+      const data = await response.json();
+
+      return {
+        budgets: data?.data || [],
+        allBudgets: data?.allBudgets || [],
+        stats: data?.stats || null,
+        location: data?.location || "OVERALL",
+        meta: data?.meta || {
+          total: 0,
+          page,
+          limit,
+        },
+      };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+// --- NEW: Fetch User Budgets (Specific user only) ---
+export const fetchUserBudgets = createAsyncThunk(
+  "budget/fetchUserBudgets",
+  async ({ userId, page = 1, limit = 10 }, { getState, rejectWithValue }) => {
+    try {
+      const csrf = getState().auth.csrf;
+      const query = new URLSearchParams();
+      if (page) query.append("page", String(page));
+      if (limit) query.append("limit", String(limit));
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASEURL}/budget/user/${userId}?${query.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", "x-csrf-token": csrf },
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch user budgets");
+
+      const data = await response.json();
+
+      return {
+        budgets: data?.data || [],
+        allBudgets: data?.allBudgets || [],
+        meta: data?.meta || { total: 0, page, limit },
+        userId, 
+      };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+// --- Update Budget ---
+export const updateBudget = createAsyncThunk(
+  "budget/update",
+  async ({ id, updates }, { dispatch, getState, rejectWithValue }) => {
+    try {
+      const csrf = getState().auth.csrf;
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASEURL}/budget/${id}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", "x-csrf-token": csrf },
+          body: JSON.stringify(updates),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to update budget");
+      const data = await response.json();
+
+      const { page, limit } = getState().budget.meta;
+      dispatch(fetchBudgets({ page, limit }));
+
+      return data?.budget;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+// --- Delete Budget ---
+export const deleteBudget = createAsyncThunk(
+  "budget/delete",
+  async (id, { getState, rejectWithValue }) => {
+    try {
+      const csrf = getState().auth.csrf;
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASEURL}/budget/${id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "x-csrf-token": csrf,
+          },
+        },
+      );
+      if (!response.ok) throw new Error("Failed to delete budget");
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+const budgetSlice = createSlice({
+  name: "budget",
+  initialState,
+  reducers: {
+    clearUserBudgets: (state) => {
+      state.budgets = [];
+      state.allBudgets = [];
+      state.meta = { total: 0, page: 1, limit: 20 };
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(allocateBudget.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(allocateBudget.fulfilled, (state, action) => {
+        state.loading = false;
+        state.budgets.unshift(action.payload);
+        state.allBudgets.unshift(action.payload);
+        state.budget = action.payload;
+      })
+      .addCase(allocateBudget.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        toast.error(action.payload || "Failed to allocate budget");
+      })
+
+      .addCase(fetchBudgets.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBudgets.fulfilled, (state, action) => {
+        state.loading = false;
+        state.budgets = action.payload.budgets;
+        state.meta = action.payload.meta;
+        state.stats = action.payload.stats || state.stats;
+
+        const map = new Map(state.statsBudgets.map((b) => [b.id, b]));
+        if (action.payload.allBudgets) {
+          action.payload.allBudgets.forEach((b) => map.set(b.id, b));
+        }
+        state.statsBudgets = Array.from(map.values());
+      })
+
+      .addCase(fetchBudgets.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        toast.error(action.payload || "Failed to fetch budgets");
+      })
+
+      .addCase(fetchUserBudgets.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserBudgets.fulfilled, (state, action) => {
+        state.loading = false;
+        state.budgets = action.payload.budgets;
+        state.meta = action.payload.meta;
+        state.meta.userId = action.payload.userId;
+      })
+      .addCase(fetchUserBudgets.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        toast.error(action.payload || "Failed to fetch user budgets");
+      })
+
+      .addCase(updateBudget.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateBudget.fulfilled, (state, action) => {
+        state.loading = false;
+        state.budget = action.payload;
+      })
+      .addCase(updateBudget.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        toast.error(action.payload || "Failed to update budget");
+      })
+
+      .addCase(searchBudgets.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(searchBudgets.fulfilled, (state, action) => {
+        state.loading = false;
+        state.budgets = action.payload.budgets;
+        state.meta = action.payload.meta;
+        state.stats = action.payload.stats || state.stats;
+      })
+      .addCase(searchBudgets.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        toast.error(action.payload || "Failed to search budgets");
+      })
+      
+      // Delete Budget
+      .addCase(deleteBudget.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(deleteBudget.fulfilled, (state, action) => {
+        state.loading = false;
+        const id = action.payload;
+        const filterOut = (arr) => arr.filter((b) => b.id !== id && b._id !== id);
+        state.budgets = filterOut(state.budgets);
+        state.allBudgets = filterOut(state.allBudgets);
+        state.statsBudgets = filterOut(state.statsBudgets);
+      })
+      .addCase(deleteBudget.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        toast.error(action.payload || "Failed to delete budget");
+      });
+  },
+});
+
+export const { clearUserBudgets } = budgetSlice.actions;
+export default budgetSlice.reducer;

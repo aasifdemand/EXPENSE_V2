@@ -8,6 +8,7 @@ import {
     UpdateDateColumn,
     BaseEntity,
     OneToOne,
+    Index,
 } from 'typeorm';
 import { Department } from './department.entity';
 import { SubDepartment } from './sub-department.entity';
@@ -33,9 +34,11 @@ export class Expense extends BaseEntity {
     fromReimbursement: number;
 
     @Column({ type: 'date' })
+    @Index()
     date: Date;
 
     @ManyToOne(() => Department, { nullable: false })
+    @Index()
     department: Department;
 
     @ManyToOne(() => SubDepartment, { nullable: true })
@@ -51,6 +54,7 @@ export class Expense extends BaseEntity {
     proof?: string;
 
     @ManyToOne(() => User, (user) => user.expenses, { nullable: false })
+    @Index()
     user: User;
 
     @ManyToOne(() => Budget, (budget) => budget.expense, { nullable: true })

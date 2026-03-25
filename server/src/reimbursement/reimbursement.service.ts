@@ -29,6 +29,15 @@ export class ReimbursementService {
         private readonly notificationService: NotificationsService,
     ) { }
 
+    private getPaginationMeta(total: number, page: number, limit: number, location: UserLocation = UserLocation.OVERALL) {
+        return {
+            total,
+            page,
+            limit,
+            location,
+        };
+    }
+
     /* =====================================================
      GET ALL REIMBURSEMENTS (ADMIN)
      ===================================================== */
@@ -46,21 +55,21 @@ export class ReimbursementService {
             .createQueryBuilder('r')
             .leftJoinAndSelect('r.requestedBy', 'user')
             .leftJoinAndSelect('r.expense', 'expense')
-            .orderBy('r.createdAt', 'DESC')
-            .skip(skip)
-            .take(safeLimit);
+            .orderBy('r.createdAt', 'DESC');
 
         if (location !== UserLocation.OVERALL) {
             qb.andWhere('user.userLoc = :location', { location });
         }
 
         if (status === 'pending') {
-            qb.andWhere('r.isReimbursed = false');
+            qb.andWhere('r.isReimbursed = :pending', { pending: false });
         }
 
         if (status === 'reimbursed') {
-            qb.andWhere('r.isReimbursed = true');
+            qb.andWhere('r.isReimbursed = :done', { done: true });
         }
+
+        qb.skip(skip).take(safeLimit);
 
         const [data, total] = await qb.getManyAndCount();
 
@@ -75,31 +84,30 @@ export class ReimbursementService {
             statsQb.andWhere('u.userLoc = :location', { location });
         }
 
-        const stats = await statsQb
-            .select([
-                'COUNT(r.id) as totalReimbursements',
-                'SUM(r.amount) as totalAmount',
-                'SUM(CASE WHEN r.isReimbursed = true THEN 1 ELSE 0 END) as totalReimbursed',
-                'SUM(CASE WHEN r.isReimbursed = false THEN 1 ELSE 0 END) as totalPending',
-                'SUM(CASE WHEN r.isReimbursed = true THEN r.amount ELSE 0 END) as totalReimbursedAmount',
-                'SUM(CASE WHEN r.isReimbursed = false THEN r.amount ELSE 0 END) as totalPendingAmount',
-            ])
+        const statsRaw = await statsQb
+            .select('COUNT(r.id)', 'totalReimbursements')
+            .addSelect('SUM(r.amount)', 'totalAmount')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusTrue THEN 1 ELSE 0 END)', 'totalReimbursed')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusFalse THEN 1 ELSE 0 END)', 'totalPending')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusTrue THEN r.amount ELSE 0 END)', 'totalReimbursedAmount')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusFalse THEN r.amount ELSE 0 END)', 'totalPendingAmount')
+            .setParameters({ statusTrue: true, statusFalse: false })
             .getRawOne();
 
         return {
             message: 'Fetched reimbursements successfully',
-            meta: { total, page: safePage, limit: safeLimit },
+            meta: this.getPaginationMeta(total, safePage, safeLimit, location),
             stats: {
-                totalReimbursements: Number(stats.totalReimbursements || 0),
-                totalAmount: Number(stats.totalAmount || 0),
-                totalReimbursed: Number(stats.totalReimbursed || 0),
-                totalPending: Number(stats.totalPending || 0),
-                totalReimbursedAmount: Number(stats.totalReimbursedAmount || 0),
-                totalPendingAmount: Number(stats.totalPendingAmount || 0),
+                totalReimbursements: Number(statsRaw?.totalReimbursements || 0),
+                totalAmount: Number(statsRaw?.totalAmount || 0),
+                totalReimbursed: Number(statsRaw?.totalReimbursed || 0),
+                totalPending: Number(statsRaw?.totalPending || 0),
+                totalReimbursedAmount: Number(statsRaw?.totalReimbursedAmount || 0),
+                totalPendingAmount: Number(statsRaw?.totalPendingAmount || 0),
             },
             data,
-            location,
         };
+
     }
 
     /* =====================================================
@@ -132,11 +140,6 @@ export class ReimbursementService {
         reimbursement.isReimbursed = isReimbursed;
         reimbursement.reimbursedAt = isReimbursed ? new Date() : undefined;
 
-        // if (isReimbursed && reimbursement.expense) {
-        //     reimbursement.expense.fromReimbursement = 0;
-        //     await this.expenseRepo.save(reimbursement.expense);
-        // }
-
         await this.reimbursementRepo.save(reimbursement);
 
         const updated = await this.reimbursementRepo.findOne({
@@ -157,6 +160,7 @@ export class ReimbursementService {
             reimbursement: updated,
         };
     }
+
     /* =====================================================
        GET REIMBURSEMENTS FOR A USER
        ===================================================== */
@@ -175,7 +179,6 @@ export class ReimbursementService {
             throw new NotFoundException('User not found');
         }
 
-        // Location safety check (same logic as Mongo version)
         if (location !== UserLocation.OVERALL && user.userLoc !== location) {
             return {
                 message: 'Fetched user reimbursements successfully',
@@ -207,19 +210,18 @@ export class ReimbursementService {
         const statsRaw = await this.reimbursementRepo
             .createQueryBuilder('r')
             .where('r.requestedById = :userId', { userId })
-            .select([
-                'COUNT(r.id) as totalReimbursements',
-                'SUM(r.amount) as totalAmount',
-                'SUM(CASE WHEN r.isReimbursed = true THEN 1 ELSE 0 END) as totalReimbursed',
-                'SUM(CASE WHEN r.isReimbursed = false THEN 1 ELSE 0 END) as totalPending',
-                'SUM(CASE WHEN r.isReimbursed = true THEN r.amount ELSE 0 END) as totalReimbursedAmount',
-                'SUM(CASE WHEN r.isReimbursed = false THEN r.amount ELSE 0 END) as totalPendingAmount',
-            ])
+            .select('COUNT(r.id)', 'totalReimbursements')
+            .addSelect('SUM(r.amount)', 'totalAmount')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusTrue THEN 1 ELSE 0 END)', 'totalReimbursed')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusFalse THEN 1 ELSE 0 END)', 'totalPending')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusTrue THEN r.amount ELSE 0 END)', 'totalReimbursedAmount')
+            .addSelect('SUM(CASE WHEN r.isReimbursed = :statusFalse THEN r.amount ELSE 0 END)', 'totalPendingAmount')
+            .setParameters({ statusTrue: true, statusFalse: false })
             .getRawOne();
 
         return {
             message: 'Fetched user reimbursements successfully',
-            meta: { total, page: safePage, limit: safeLimit },
+            meta: this.getPaginationMeta(total, safePage, safeLimit, location),
             stats: {
                 totalReimbursements: Number(statsRaw?.totalReimbursements || 0),
                 totalAmount: Number(statsRaw?.totalAmount || 0),
@@ -229,10 +231,7 @@ export class ReimbursementService {
                 totalPendingAmount: Number(statsRaw?.totalPendingAmount || 0),
             },
             data,
-            location,
         };
+
     }
-
-
-
 }

@@ -1,0 +1,36 @@
+{
+  // Tailwind CSS settings
+  "tailwindCSS.experimental.classRegex": [
+    "clsx\\(([^)]*)\\)",
+    "cn\\(([^)]*)\\)",
+    "cva\\(([^)]*)\\)",
+    "twMerge\\(([^)]*)\\)"
+  ],
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript",
+    "javascript": "javascript",
+    "javascriptreact": "javascript"
+  },
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.validate": true,
+  
+  // CSS validation
+  "css.validate": false,
+  "scss.validate": false,
+  
+  // Editor settings
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "editor.inlineSuggest.enabled": true,
+  
+  // For decorators
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "javascript.validate.enable": true,
+  "typescript.validate.enable": true,
+  
+  // Disable unknown CSS rule warnings
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore"
+}

@@ -79,8 +79,10 @@ export class AuthService {
   /* ===========================
      GET ALL USERS
      =========================== */
-  async getAll() {
-    const users = await this.userRepository.find({
+  async getAll(page: number = 1, limit: number = 5) {
+    const [users, total] = await this.userRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
       order: { createdAt: 'DESC' },
     });
 
@@ -91,6 +93,12 @@ export class AuthService {
     return {
       count: users.length,
       users: users.map(({ password, twoFactorSecret, ...safe }) => safe),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 

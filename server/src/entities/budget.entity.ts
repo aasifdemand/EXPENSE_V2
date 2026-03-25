@@ -11,6 +11,7 @@ import {
     UpdateDateColumn,
     BaseEntity,
     JoinColumn,
+    Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Expense } from './expense.entity';
@@ -21,11 +22,13 @@ export enum BudgetType {
 }
 
 @Entity('budgets')
+@Index(['month', 'year'])
 export class Budget extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @ManyToOne(() => User, { nullable: false })
+    @Index()
     user: User;
 
     @OneToOne(() => Expense, { nullable: true })

@@ -8,6 +8,7 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     BaseEntity,
+    Index,
 } from 'typeorm';
 import { Expense } from './expense.entity';
 import { User } from './user.entity';
@@ -36,12 +37,14 @@ export class Reimbursement extends BaseEntity {
         onDelete: 'CASCADE',
     })
     @JoinColumn({ name: 'requestedById' }) // 🔥 REQUIRED
+    @Index()
     requestedBy: User;
 
     @Column({ type: 'decimal', precision: 12, scale: 2 })
     amount: number;
 
     @Column({ default: false })
+    @Index()
     isReimbursed: boolean;
 
     @Column({ type: 'timestamp', nullable: true })

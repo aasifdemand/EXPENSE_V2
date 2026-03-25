@@ -56,6 +56,27 @@ export class ExpensesService {
   ) { }
 
   /* =====================================================
+     HELPERS
+     ===================================================== */
+  private getBaseExpenseQB() {
+    return this.expenseRepo
+      .createQueryBuilder('expense')
+      .leftJoinAndSelect('expense.user', 'user')
+      .leftJoinAndSelect('expense.department', 'department')
+      .leftJoinAndSelect('expense.subDepartment', 'subDepartment')
+      .leftJoinAndSelect('expense.reimbursement', 'reimbursement');
+  }
+
+  private getPaginationMeta(total: number, page: number, limit: number, location?: string) {
+    return {
+      total,
+      page,
+      limit,
+      location: location || 'OVERALL',
+    };
+  }
+
+  /* =====================================================
      CREATE EXPENSE (ENTRY POINT)
      ===================================================== */
   async handleCreateExpense(
@@ -378,19 +399,11 @@ export class ExpensesService {
     const safeLimit = Math.max(limit, 1);
     const skip = (safePage - 1) * safeLimit;
 
-    const qb = this.expenseRepo
-      .createQueryBuilder('expense')
-      .leftJoinAndSelect('expense.user', 'user')
-      .leftJoinAndSelect('expense.department', 'department')
-      .leftJoinAndSelect('expense.subDepartment', 'subDepartment')
-      .leftJoinAndSelect('expense.reimbursement', 'reimbursement')
+    const qb = this.getBaseExpenseQB()
       .orderBy('expense.createdAt', 'DESC')
       .skip(skip)
       .take(safeLimit);
 
-    /* =====================
-       LOCATION FILTER
-       ===================== */
     if (location && location !== 'OVERALL') {
       qb.andWhere('user.userLoc = :location', { location });
     }
@@ -399,14 +412,10 @@ export class ExpensesService {
 
     return {
       message: 'Fetched expenses successfully',
-      meta: {
-        total,
-        page: safePage,
-        limit: safeLimit,
-        location,
-      },
+      meta: this.getPaginationMeta(total, safePage, safeLimit, location),
       data,
     };
+
   }
 
 
@@ -546,19 +555,18 @@ export class ExpensesService {
       };
     }
 
-    const [data, total] = await this.expenseRepo.findAndCount({
-      where: { user: { id: userId } },
-      relations: ['user', 'department', 'subDepartment', 'reimbursement'],
-      order: { createdAt: 'DESC' },
-      skip,
-      take: safeLimit,
-    });
+    const [data, total] = await this.getBaseExpenseQB()
+      .where('user.id = :userId', { userId })
+      .orderBy('expense.createdAt', 'DESC')
+      .skip(skip)
+      .take(safeLimit)
+      .getManyAndCount();
 
-    const allExpenses = await this.expenseRepo.find({
-      where: { user: { id: userId } },
-      relations: ['user', 'department', 'subDepartment', 'reimbursement'],
-      order: { createdAt: 'DESC' },
-    });
+    const allExpenses = await this.getBaseExpenseQB()
+      .where('user.id = :userId', { userId })
+      .orderBy('expense.createdAt', 'DESC')
+      .getMany();
+
 
     const stats = {
       totalSpent: allExpenses.reduce((s, e) => s + Number(e.amount), 0),
@@ -574,11 +582,12 @@ export class ExpensesService {
 
     const result = {
       message: "Fetched user's expenses successfully",
-      meta: { total, page: safePage, limit: safeLimit },
+      meta: this.getPaginationMeta(total, safePage, safeLimit),
       stats,
       data,
       allExpenses,
     };
+
 
     await this.cacheManager.set(cacheKey, result, 60_000);
     return result;
@@ -606,12 +615,9 @@ export class ExpensesService {
       stats: {
         totalSpent: Number(statsAgg?.totalSpent || 0),
       },
-      meta: {
-        total,
-        page: safePage,
-        limit: safeLimit,
-      },
+      meta: this.getPaginationMeta(total, safePage, safeLimit),
     };
+
   }
   async getAdminExpenseById(id: string) {
     const expense = await this.adminExpenseRepo.findOne({
@@ -643,14 +649,11 @@ export class ExpensesService {
       limit = 20,
     } = dto;
 
-    const skip = (page - 1) * limit;
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.max(limit, 1);
+    const skip = (safePage - 1) * safeLimit;
 
-    const qb = this.expenseRepo
-      .createQueryBuilder('expense')
-      .leftJoinAndSelect('expense.user', 'user')
-      .leftJoinAndSelect('expense.department', 'department')
-      .leftJoinAndSelect('expense.subDepartment', 'subDepartment')
-      .leftJoinAndSelect('expense.reimbursement', 'reimbursement')
+    const qb = this.getBaseExpenseQB()
       .orderBy('expense.date', 'DESC');
 
     // TEXT
@@ -724,15 +727,15 @@ export class ExpensesService {
 
     return {
       message: 'Search completed successfully',
-      meta: { total, page, limit },
+      meta: this.getPaginationMeta(total, safePage, safeLimit, location),
       stats: {
         totalSpent: Number(statsRaw?.totalSpent || 0),
         totalFromAllocation: Number(statsRaw?.totalFromAllocation || 0),
         totalFromReimbursement: Number(statsRaw?.totalFromReimbursement || 0),
       },
-      location: location || 'OVERALL',
       data,
     };
+
   }
 
 

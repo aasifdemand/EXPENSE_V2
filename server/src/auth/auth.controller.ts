@@ -14,6 +14,7 @@ import {
   Param,
   Patch,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto/auth.dto';
@@ -84,11 +85,15 @@ export class AuthController {
   // 👥 Get list of users (superadmin only)
   @Get('users')
   @UseGuards(CsrfGuard)
-  async getTheListOfUsers(@Req() req: Request) {
+  async getTheListOfUsers(
+    @Req() req: Request,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
     if (req?.session?.user?.role !== UserRole.SUPERADMIN) {
       throw new UnauthorizedException('Normal user not allowed to fetch users');
     }
-    return this.authService.getAll();
+    return this.authService.getAll(Number(page), Number(limit));
   }
 
   // ➕ Create user (superadmin only)
